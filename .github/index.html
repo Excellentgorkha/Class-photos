@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Memories</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        img { width: 200px; margin: 10px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Class Memories</h1>
+    
+    <input type="file" id="photo-upload">
+    <button onclick="uploadPhoto()">Upload Photo</button>
+    
+    <h2>Gallery</h2>
+    <div id="gallery"></div>
+
+    <script>
+        // Supabase Project Details
+        const SUPABASE_URL = "https://ogmrxeabhldcuoxgnizn.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nbXJ4ZWFiaGxkY3VveGduaXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI4MTgyODYsImV4cCI6MjA1ODM5NDI4Nn0.988_4GaeaQ69ABNjpXqXDxmnv01HRRb7cLrODcsqVWM";
+
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const BUCKET_NAME = "class-photos"; // Change this if your bucket has a different name
+
+        async function uploadPhoto() {
+            const fileInput = document.getElementById("photo-upload");
+            if (fileInput.files.length === 0) return alert("Please select a photo!");
+
+            const file = fileInput.files[0];
+            const fileName = `${Date.now()}-${file.name}`;
+            
+            // Upload to Supabase Storage
+            const { data, error } = await supabase.storage
+                .from(BUCKET_NAME)
+                .upload(fileName, file);
+
+            if (error) {
+                console.error("Upload failed:", error.message);
+                alert("Upload failed!");
+            } else {
+                alert("Photo uploaded!");
+                loadGallery();
+            }
+        }
+
+        async function loadGallery() {
+            const { data, error } = await supabase.storage.from(BUCKET_NAME).list();
+
+            if (error) {
+                console.error("Error fetching photos:", error.message);
+                return;
+            }
+
+            const galleryDiv = document.getElementById("gallery");
+            galleryDiv.innerHTML = "";
+
+            data.forEach(async (file) => {
+                const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(file.name);
+                const img = document.createElement("img");
+                img.src = data.publicUrl;
+                galleryDiv.appendChild(img);
+            });
+        }
+
+        loadGallery(); // Load images on page load
+    </script>
+</body>
+  </html>
